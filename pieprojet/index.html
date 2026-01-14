@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISTA Connect - Pro</title>
+    <style>
+        :root { --primary: #1a73e8; --secondary: #34a853; --bg: #f8f9fa; --text: #202124; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: var(--bg); color: var(--text); transition: 0.3s; }
+        
+        header { background: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-weight: 900; font-size: 24px; color: var(--primary); }
+
+        .hero { text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; border-bottom-left-radius: 50px; border-bottom-right-radius: 50px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; padding: 40px 5%; }
+        .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); transition: 0.3s; border: 1px solid #eee; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-8px); }
+        .card img { width: 100%; height: 180px; object-fit: cover; }
+        .card-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-content h3 { margin: 0 0 10px; color: var(--primary); font-size: 20px; }
+        .card-content p { font-size: 14px; color: #5f6368; line-height: 1.5; margin-bottom: 20px; flex-grow: 1; }
+
+        .btn-main { width: 100%; padding: 12px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
+        .btn-join { background: var(--secondary); color: white; }
+        .btn-chat { background: #f1f3f4; color: var(--text); display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: white; padding: 30px; border-radius: 25px; width: 90%; max-width: 450px; position: relative; }
+        
+        input, textarea { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 10px; box-sizing: border-box; font-size: 15px; }
+        textarea { height: 100px; resize: none; }
+
+        .trainee-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .avatar { width: 40px; height: 40px; background: #e8f0fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">ISTA CONNECT</div>
+</header>
+
+<div class="hero">
+    <h1>Plateforme des Activités</h1>
+    <p>Rejoignez un club, proposez des idées et collaborez avec vos collègues.</p>
+</div>
+
+<div class="grid" id="activitiesGrid"></div>
+
+<div id="joinModal" class="modal">
+    <div class="modal-content">
+        <h3 id="joinTitle" style="color: var(--primary);">Inscription</h3>
+        <input type="text" id="regName" placeholder="Nom Complet">
+        <input type="text" id="regBranch" placeholder="Filière (ex: Développement Digital)">
+        <input type="email" id="regEmail" placeholder="E-mail">
+        <input type="tel" id="regPhone" placeholder="Téléphone">
+        <textarea id="ideaText" placeholder="Décrivez votre idée ici..." style="display: none;"></textarea>
+        
+        <button class="btn-main btn-join" onclick="submitData()">Confirmer</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:red; cursor:pointer; width:100%; margin-top:10px;">Fermer</button>
+    </div>
+</div>
+
+<div id="chatModal" class="modal">
+    <div class="modal-content">
+        <h3 id="chatTitle" style="color: var(--primary);">Stagiaires intéressés</h3>
+        <div id="traineeList"></div>
+        <button onclick="closeModal()" style="background:none; border:none; color:red; cursor:pointer; width:100%; margin-top:10px;">Fermer</button>
+    </div>
+</div>
+
+<script>
+    const activities = [
+        { 
+            id: 1, title: "Club de Lecture", 
+            desc: "Créez une mini-bibliothèque collaborative et profitez de la lecture pendant les pauses.",
+            img: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=500", 
+            trainees: ["Amine (DD)", "Sara (GE)", "Yassine (ID)"] 
+        },
+        { 
+            id: 2, title: "Atelier Cuisine", 
+            desc: "Préparez des snacks, des boissons et des pâtisseries pour vos collègues dans l'espace pause.",
+            img: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500", 
+            trainees: ["Leyla (CM)", "Mehdi (DD)"] 
+        },
+        { 
+            id: 3, title: "Club Jardinage", 
+            desc: "Embellissez votre établissement en plantant des arbres et des fleurs dans les espaces verts.",
+            img: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=500", 
+            trainees: ["Omar (ID)", "Kaoutar (GE)"] 
+        },
+        { 
+            id: 4, title: "Art & Peinture", 
+            desc: "Peignez sur les murs de l'établissement et participez à sa décoration avec des fresques artistiques.",
+            img: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=500", 
+            trainees: ["Reda (DD)", "Salma (CM)"] 
+        },
+        { 
+            id: 5, title: "Organisation Voyages", 
+            desc: "Organisez des excursions à travers le Maroc avec vos collègues pour décompresser.",
+            img: "https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=500", 
+            trainees: ["Badr (GE)", "Ahlam (ID)"] 
+        },
+        { 
+            id: 6, title: "Proposer une Idée", 
+            desc: "Vous avez une idée de club ? Partagez les détails et nous vous aiderons à commencer.",
+            img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=500", 
+            trainees: [] 
+        }
+    ];
+
+    function render() {
+        const grid = document.getElementById('activitiesGrid');
+        grid.innerHTML = '';
+        activities.forEach(act => {
+            grid.innerHTML += `
+                <div class="card">
+                    <img src="${act.img}">
+                    <div class="card-content">
+                        <h3>${act.title}</h3>
+                        <p>${act.desc}</p>
+                        <button class="btn-main btn-join" onclick="openJoin('${act.title}', ${act.id})">Rejoindre</button>
+                        <button class="btn-main btn-chat" onclick="openChat('${act.title}', ${act.id})">
+                            <span>👥</span> Contacts
+                        </button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function openJoin(title, id) {
+        document.getElementById('joinModal').style.display = 'flex';
+        document.getElementById('joinTitle').innerText = "Inscription: " + title;
+        // إظهار مربع الفكرة فقط عند الضغط على "Proposer une idée"
+        document.getElementById('ideaText').style.display = (id === 6) ? 'block' : 'none';
+    }
+
+    function openChat(title, id) {
+        document.getElementById('chatModal').style.display = 'flex';
+        document.getElementById('chatTitle').innerText = title;
+        const list = document.getElementById('traineeList');
+        list.innerHTML = '';
+        const act = activities.find(a => a.id === id);
+        
+        if (act.trainees.length === 0) {
+            list.innerHTML = '<p style="text-align:center;">Soyez le premier à proposer une idée !</p>';
+        } else {
+            act.trainees.forEach(t => {
+                list.innerHTML += `
+                    <div class="trainee-item">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="avatar">${t[0]}</div>
+                            <span>${t}</span>
+                        </div>
+                        <button style="border:none; color:var(--primary); cursor:pointer; background:none; font-weight:bold;">Chat</button>
+                    </div>`;
+            });
+        }
+    }
+
+    function closeModal() {
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+    }
+
+    function submitData() {
+        const name = document.getElementById('regName').value;
+        if(name) {
+            alert("Merci " + name + "! Votre demande a été envoyée avec succès.");
+            closeModal();
+        } else {
+            alert("Veuillez entrer votre nom.");
+        }
+    }
+
+    render();
+</script>
+</body>
+</html>
